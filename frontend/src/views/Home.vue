@@ -137,10 +137,25 @@ onMounted(() => {
 
 .product-card {
   margin-bottom: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.el-card__header) {
+  padding: 0;
+  flex-shrink: 0;
 }
 
 .card-image {
   height: 200px;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -148,13 +163,16 @@ onMounted(() => {
 }
 
 .card-image img {
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 200px;
   object-fit: cover;
 }
 
 .product-info {
   padding: 10px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .product-name {
@@ -165,6 +183,7 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .product-desc {
@@ -174,6 +193,7 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .product-meta {
@@ -181,6 +201,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
+  flex-shrink: 0;
 }
 
 .price {
@@ -199,5 +220,7 @@ onMounted(() => {
 
 .buy-btn {
   width: 100%;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 </style>

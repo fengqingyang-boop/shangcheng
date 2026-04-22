@@ -2,10 +2,12 @@ package com.shangcheng.service;
 
 import com.shangcheng.dto.ProductRequest;
 import com.shangcheng.entity.Product;
+import com.shangcheng.repository.OrderRepository;
 import com.shangcheng.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,6 +23,9 @@ public class ProductService {
     
     @Autowired
     private ProductRepository productRepository;
+    
+    @Autowired
+    private OrderRepository orderRepository;
     
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -70,9 +75,12 @@ public class ProductService {
         return productRepository.save(product);
     }
     
+    @Transactional
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("商品不存在"));
+        
+        orderRepository.deleteByProduct(product);
         
         if (product.getImagePath() != null) {
             deleteImage(product.getImagePath());
