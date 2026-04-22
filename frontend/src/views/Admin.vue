@@ -58,13 +58,15 @@
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="points" label="积分" width="120">
+              <el-table-column prop="points" label="积分" width="160">
                 <template #default="scope">
                   <el-input-number
                     v-model="scope.row.points"
                     :min="0"
                     size="small"
+                    controls-position="right"
                     @change="updatePoints(scope.row)"
+                    style="width: 130px"
                   />
                 </template>
               </el-table-column>
