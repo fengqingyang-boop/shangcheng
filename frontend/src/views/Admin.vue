@@ -170,6 +170,9 @@ const productFormRef = ref(null)
 const selectedFile = ref(null)
 const imagePreview = ref('')
 
+const messageTimer = ref(null)
+const messageCount = ref(0)
+
 const productForm = reactive({
   id: null,
   name: '',
@@ -272,12 +275,24 @@ const deleteProduct = async (product) => {
 const updatePoints = async (user) => {
   try {
     await api.put(`/api/users/${user.id}/points`, { points: user.points })
-    ElMessage({
-      message: '积分更新成功',
-      type: 'success',
-      offset: 60,
-      duration: 1500
-    })
+    
+    if (messageCount.value < 2) {
+      ElMessage({
+        message: '积分更新成功',
+        type: 'success',
+        offset: 60,
+        duration: 1500
+      })
+      messageCount.value++
+    }
+    
+    if (messageTimer.value) {
+      clearTimeout(messageTimer.value)
+    }
+    
+    messageTimer.value = setTimeout(() => {
+      messageCount.value = 0
+    }, 2000)
   } catch (error) {
     console.error('Failed to update points:', error)
     fetchUsers()

@@ -1,6 +1,7 @@
 package com.shangcheng.service;
 
 import com.shangcheng.dto.ProductRequest;
+import com.shangcheng.entity.Order;
 import com.shangcheng.entity.Product;
 import com.shangcheng.repository.OrderRepository;
 import com.shangcheng.repository.ProductRepository;
@@ -79,6 +80,11 @@ public class ProductService {
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("商品不存在"));
+        
+        List<Order> orders = orderRepository.findByProduct(product);
+        if (!orders.isEmpty()) {
+            throw new RuntimeException("该商品已被购买，无法删除");
+        }
         
         if (product.getImagePath() != null) {
             deleteImage(product.getImagePath());
