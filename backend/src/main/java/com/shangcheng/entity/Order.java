@@ -17,8 +17,13 @@ public class Order {
     private User user;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
+    @JoinColumn(name = "product_id", nullable = true)
     private Product product;
+    
+    @Column(nullable = false)
+    private String productName;
+    
+    private String productImage;
     
     @Column(nullable = false)
     private Integer price;

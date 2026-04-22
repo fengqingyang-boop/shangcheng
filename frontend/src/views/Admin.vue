@@ -272,7 +272,12 @@ const deleteProduct = async (product) => {
 const updatePoints = async (user) => {
   try {
     await api.put(`/api/users/${user.id}/points`, { points: user.points })
-    ElMessage.success('积分更新成功')
+    ElMessage({
+      message: '积分更新成功',
+      type: 'success',
+      offset: 60,
+      duration: 1500
+    })
   } catch (error) {
     console.error('Failed to update points:', error)
     fetchUsers()

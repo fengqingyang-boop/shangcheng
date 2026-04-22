@@ -80,8 +80,6 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("商品不存在"));
         
-        orderRepository.deleteByProduct(product);
-        
         if (product.getImagePath() != null) {
             deleteImage(product.getImagePath());
         }

@@ -36,6 +36,8 @@ public class OrderService {
         Order order = new Order();
         order.setUser(user);
         order.setProduct(product);
+        order.setProductName(product.getName());
+        order.setProductImage(product.getImagePath());
         order.setPrice(totalPrice);
         order.setQuantity(quantity);
         
