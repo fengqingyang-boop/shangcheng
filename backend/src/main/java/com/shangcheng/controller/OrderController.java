@@ -52,7 +52,8 @@ public class OrderController {
             
             Map<String, Object> result = new HashMap<>();
             result.put("id", order.getId());
-            result.put("productName", order.getProduct().getName());
+            result.put("productName", order.getProductName());
+            result.put("productImage", order.getProductImage());
             result.put("price", order.getPrice());
             result.put("quantity", order.getQuantity());
             result.put("createdAt", order.getCreatedAt());
@@ -77,9 +78,9 @@ public class OrderController {
         List<Map<String, Object>> result = orders.stream().map(order -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", order.getId());
-            map.put("productId", order.getProduct().getId());
-            map.put("productName", order.getProduct().getName());
-            map.put("productImage", order.getProduct().getImagePath());
+            map.put("productId", order.getProduct() != null ? order.getProduct().getId() : null);
+            map.put("productName", order.getProductName());
+            map.put("productImage", order.getProductImage());
             map.put("price", order.getPrice());
             map.put("quantity", order.getQuantity());
             map.put("createdAt", order.getCreatedAt());
@@ -99,8 +100,9 @@ public class OrderController {
             map.put("id", order.getId());
             map.put("userId", order.getUser().getId());
             map.put("username", order.getUser().getUsername());
-            map.put("productId", order.getProduct().getId());
-            map.put("productName", order.getProduct().getName());
+            map.put("productId", order.getProduct() != null ? order.getProduct().getId() : null);
+            map.put("productName", order.getProductName());
+            map.put("productImage", order.getProductImage());
             map.put("price", order.getPrice());
             map.put("quantity", order.getQuantity());
             map.put("createdAt", order.getCreatedAt());

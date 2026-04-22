@@ -36,7 +36,7 @@
                 type="primary" 
                 class="buy-btn" 
                 :disabled="product.stock <= 0"
-                @click="handleBuy(product)"
+                @click="openBuyDialog(product)"
               >
                 {{ product.stock > 0 ? '立即购买' : '已售罄' }}
               </el-button>
@@ -45,13 +45,62 @@
         </el-col>
       </el-row>
     </div>
+    
+    <el-dialog
+      v-model="buyDialogVisible"
+      title="确认购买"
+      width="400px"
+      :close-on-click-modal="false"
+    >
+      <div class="buy-dialog-content">
+        <div class="product-preview">
+          <img 
+            :src="selectedProduct?.imagePath || 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=default%20product%20placeholder%20image&image_size=square'" 
+            :alt="selectedProduct?.name"
+            class="product-preview-img"
+          />
+          <div class="product-preview-info">
+            <h3>{{ selectedProduct?.name }}</h3>
+            <p class="product-preview-price">
+              <el-icon><Coin /></el-icon>
+              {{ selectedProduct?.price }} 积分/件
+            </p>
+            <p class="product-preview-stock">库存: {{ selectedProduct?.stock }} 件</p>
+          </div>
+        </div>
+        
+        <div class="quantity-section">
+          <span class="quantity-label">购买数量:</span>
+          <el-input-number
+            v-model="buyQuantity"
+            :min="1"
+            :max="selectedProduct?.stock || 1"
+            :controls-position="'right'"
+            size="large"
+          />
+        </div>
+        
+        <div class="total-section">
+          <span>总积分:</span>
+          <span class="total-price">{{ totalPrice }} 积分</span>
+        </div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="buyDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="buying" @click="confirmBuy">
+            确认购买
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import NavBar from '@/components/NavBar.vue'
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
@@ -60,6 +109,14 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const products = ref([])
+const buyDialogVisible = ref(false)
+const selectedProduct = ref(null)
+const buyQuantity = ref(1)
+const buying = ref(false)
+
+const totalPrice = computed(() => {
+  return selectedProduct.value ? selectedProduct.value.price * buyQuantity.value : 0
+})
 
 const fetchProducts = async () => {
   try {
@@ -70,35 +127,41 @@ const fetchProducts = async () => {
   }
 }
 
-const handleBuy = async (product) => {
+const openBuyDialog = (product) => {
   if (!userStore.isLoggedIn) {
     router.push('/login')
     return
   }
   
+  selectedProduct.value = product
+  buyQuantity.value = 1
+  buyDialogVisible.value = true
+}
+
+const confirmBuy = async () => {
+  if (!selectedProduct.value) return
+  
+  buying.value = true
   try {
-    await ElMessageBox.confirm(
-      `确定要花费 ${product.price} 积分购买 "${product.name}" 吗？`,
-      '确认购买',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
     await api.post('/api/orders', {
-      productId: product.id,
-      quantity: 1
+      productId: selectedProduct.value.id,
+      quantity: buyQuantity.value
     })
     
-    ElMessage.success('购买成功！')
+    ElMessage({
+      message: '购买成功！',
+      type: 'success',
+      offset: 60,
+      duration: 1500
+    })
+    
+    buyDialogVisible.value = false
     await userStore.refreshUserInfo()
     fetchProducts()
   } catch (error) {
-    if (error !== 'cancel') {
-      console.error('Failed to buy:', error)
-    }
+    console.error('Failed to buy:', error)
+  } finally {
+    buying.value = false
   }
 }
 
@@ -222,5 +285,90 @@ onMounted(() => {
   width: 100%;
   margin-top: auto;
   flex-shrink: 0;
+}
+
+.buy-dialog-content {
+  padding: 10px 0;
+}
+
+.product-preview {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.product-preview-img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+}
+
+.product-preview-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.product-preview-info h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  color: #303133;
+}
+
+.product-preview-price {
+  margin: 0 0 5px 0;
+  font-size: 18px;
+  font-weight: bold;
+  color: #f56c6c;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.product-preview-stock {
+  margin: 0;
+  font-size: 13px;
+  color: #909399;
+}
+
+.quantity-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.quantity-label {
+  font-size: 14px;
+  color: #606266;
+}
+
+.total-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  background-color: #f5f7fa;
+  border-radius: 6px;
+}
+
+.total-section span:first-child {
+  font-size: 14px;
+  color: #606266;
+}
+
+.total-price {
+  font-size: 20px;
+  font-weight: bold;
+  color: #f56c6c;
+}
+
+.dialog-footer {
+  text-align: right;
 }
 </style>
