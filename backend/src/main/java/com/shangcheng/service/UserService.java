@@ -48,6 +48,11 @@ public class UserService {
     public User updatePoints(Long userId, Integer points) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
+        if (points == null || points < 0) {
+            points = 0;
+        } else if (points > 999999999) {
+            points = 999999999;
+        }
         user.setPoints(points);
         return userRepository.save(user);
     }

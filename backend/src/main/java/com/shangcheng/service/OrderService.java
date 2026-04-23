@@ -57,8 +57,7 @@ public class OrderService {
     
     @Transactional
     public Order createOrder(User user, Product product, Integer quantity) {
-        Order order = createPendingOrder(user, product, quantity);
-        return payOrder(order.getId(), user);
+        return createPendingOrder(user, product, quantity);
     }
     
     @Transactional
