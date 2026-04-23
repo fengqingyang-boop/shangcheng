@@ -24,10 +24,49 @@
             <span class="price">{{ scope.row.price }} 积分</span>
           </template>
         </el-table-column>
-        <el-table-column prop="quantity" label="数量" width="100" />
-        <el-table-column prop="createdAt" label="购买时间" min-width="180">
+        <el-table-column prop="quantity" label="数量" width="80" />
+        <el-table-column prop="status" label="订单状态" width="120">
+          <template #default="scope">
+            <el-tag :type="getStatusType(scope.row.status)">
+              {{ getStatusText(scope.row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createdAt" label="创建时间" min-width="180">
           <template #default="scope">
             {{ formatDate(scope.row.createdAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150">
+          <template #default="scope">
+            <el-button 
+              v-if="scope.row.status === 'PENDING_PAYMENT'" 
+              type="primary" 
+              link 
+              :loading="scope.row.paying"
+              @click="payOrder(scope.row)"
+            >
+              支付
+            </el-button>
+            <el-button 
+              v-if="scope.row.status === 'PENDING_PAYMENT'" 
+              type="warning" 
+              link 
+              :loading="scope.row.cancelling"
+              @click="cancelOrder(scope.row)"
+            >
+              取消
+            </el-button>
+            <el-button 
+              v-if="scope.row.status === 'PAID'" 
+              type="danger" 
+              link 
+              :loading="scope.row.refunding"
+              @click="refundOrder(scope.row)"
+            >
+              退款
+            </el-button>
+            <span v-else class="no-action">-</span>
           </template>
         </el-table-column>
       </el-table>
@@ -37,9 +76,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import NavBar from '@/components/NavBar.vue'
 import api from '@/utils/api'
+import { useUserStore } from '@/stores/user'
 
+const userStore = useUserStore()
 const orders = ref([])
 
 const fetchOrders = async () => {
@@ -51,10 +93,95 @@ const fetchOrders = async () => {
   }
 }
 
+const getStatusType = (status) => {
+  const typeMap = {
+    'PENDING_PAYMENT': 'warning',
+    'PAID': 'success',
+    'CANCELLED': 'info',
+    'REFUNDED': 'danger'
+  }
+  return typeMap[status] || 'info'
+}
+
+const getStatusText = (status) => {
+  const textMap = {
+    'PENDING_PAYMENT': '待支付',
+    'PAID': '已支付',
+    'CANCELLED': '已取消',
+    'REFUNDED': '已退款'
+  }
+  return textMap[status] || status
+}
+
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
   return date.toLocaleString('zh-CN')
+}
+
+const payOrder = async (order) => {
+  try {
+    await ElMessageBox.confirm(`确定要支付吗？需要 ${order.price} 积分`, '确认支付', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'info'
+    })
+    
+    order.paying = true
+    await api.post(`/api/orders/${order.id}/pay`)
+    ElMessage.success('支付成功')
+    order.status = 'PAID'
+    await userStore.refreshUserInfo()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Failed to pay:', error)
+    }
+  } finally {
+    order.paying = false
+  }
+}
+
+const cancelOrder = async (order) => {
+  try {
+    await ElMessageBox.confirm('确定要取消这个订单吗？', '确认取消', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    order.cancelling = true
+    await api.post(`/api/orders/${order.id}/cancel`)
+    ElMessage.success('订单已取消')
+    order.status = 'CANCELLED'
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Failed to cancel:', error)
+    }
+  } finally {
+    order.cancelling = false
+  }
+}
+
+const refundOrder = async (order) => {
+  try {
+    await ElMessageBox.confirm('确定要申请退款吗？积分将原路返回', '确认退款', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    order.refunding = true
+    await api.post(`/api/orders/${order.id}/refund`)
+    ElMessage.success('退款成功')
+    order.status = 'REFUNDED'
+    await userStore.refreshUserInfo()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Failed to refund:', error)
+    }
+  } finally {
+    order.refunding = false
+  }
 }
 
 onMounted(() => {
@@ -91,5 +218,9 @@ onMounted(() => {
 .price {
   color: #f56c6c;
   font-weight: bold;
+}
+
+.no-action {
+  color: #c0c4cc;
 }
 </style>

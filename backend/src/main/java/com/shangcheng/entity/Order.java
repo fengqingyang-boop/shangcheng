@@ -8,6 +8,11 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "orders")
 public class Order {
+    public static final String STATUS_PENDING_PAYMENT = "PENDING_PAYMENT";
+    public static final String STATUS_PAID = "PAID";
+    public static final String STATUS_CANCELLED = "CANCELLED";
+    public static final String STATUS_REFUNDED = "REFUNDED";
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -32,7 +37,14 @@ public class Order {
     private Integer quantity = 1;
     
     @Column(nullable = false)
+    private String status = STATUS_PENDING_PAYMENT;
+    
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+    
+    private LocalDateTime paidAt;
+    private LocalDateTime cancelledAt;
+    private LocalDateTime refundedAt;
     
     @PrePersist
     protected void onCreate() {

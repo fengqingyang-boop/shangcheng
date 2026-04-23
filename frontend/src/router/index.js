@@ -21,6 +21,12 @@ const routes = [
     meta: { title: '商城首页', requiresAuth: true }
   },
   {
+    path: '/cart',
+    name: 'Cart',
+    component: () => import('@/views/Cart.vue'),
+    meta: { title: '购物车', requiresAuth: true }
+  },
+  {
     path: '/orders',
     name: 'Orders',
     component: () => import('@/views/Orders.vue'),

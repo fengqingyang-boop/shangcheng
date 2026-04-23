@@ -1,9 +1,7 @@
 package com.shangcheng.service;
 
 import com.shangcheng.dto.ProductRequest;
-import com.shangcheng.entity.Order;
 import com.shangcheng.entity.Product;
-import com.shangcheng.repository.OrderRepository;
 import com.shangcheng.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,14 +23,15 @@ public class ProductService {
     @Autowired
     private ProductRepository productRepository;
     
-    @Autowired
-    private OrderRepository orderRepository;
-    
     @Value("${file.upload-dir}")
     private String uploadDir;
     
     public List<Product> findAll() {
         return productRepository.findAll();
+    }
+    
+    public List<Product> findAllActive() {
+        return productRepository.findByStatusOrderByCreatedAtDesc(Product.STATUS_ACTIVE);
     }
     
     public Optional<Product> findById(Long id) {
@@ -45,6 +44,7 @@ public class ProductService {
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
         product.setStock(request.getStock() != null ? request.getStock() : 1);
+        product.setStatus(Product.STATUS_ACTIVE);
         
         if (imageFile != null && !imageFile.isEmpty()) {
             String imagePath = saveImage(imageFile);
@@ -77,20 +77,17 @@ public class ProductService {
     }
     
     @Transactional
-    public void deleteProduct(Long id) {
+    public Product toggleStatus(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("商品不存在"));
         
-        List<Order> orders = orderRepository.findByProduct(product);
-        if (!orders.isEmpty()) {
-            throw new RuntimeException("该商品已被购买，无法删除");
+        if (Product.STATUS_ACTIVE.equals(product.getStatus())) {
+            product.setStatus(Product.STATUS_INACTIVE);
+        } else {
+            product.setStatus(Product.STATUS_ACTIVE);
         }
         
-        if (product.getImagePath() != null) {
-            deleteImage(product.getImagePath());
-        }
-        
-        productRepository.deleteById(id);
+        return productRepository.save(product);
     }
     
     public Product updateStock(Long id, Integer stock) {

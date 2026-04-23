@@ -1,15 +1,18 @@
 com\shangcheng\controller\OrderController.class
 com\shangcheng\controller\ProductController.class
 com\shangcheng\config\StaticResourceConfig.class
+com\shangcheng\entity\CartItem.class
 com\shangcheng\security\JwtUtils.class
 com\shangcheng\config\WebConfig.class
 com\shangcheng\dto\LoginRequest.class
+com\shangcheng\service\CartService.class
 com\shangcheng\repository\UserRepository.class
 com\shangcheng\config\DataInitializer.class
 com\shangcheng\repository\OrderRepository.class
 com\shangcheng\dto\RegisterRequest.class
 com\shangcheng\service\UserService.class
 com\shangcheng\service\ProductService.class
+com\shangcheng\controller\CartController.class
 com\shangcheng\controller\AuthController.class
 com\shangcheng\security\AuthTokenFilter.class
 com\shangcheng\controller\FrontendController.class
@@ -24,5 +27,6 @@ com\shangcheng\dto\OrderRequest.class
 com\shangcheng\entity\Order.class
 com\shangcheng\dto\ProductRequest.class
 com\shangcheng\security\AuthEntryPointJwt.class
+com\shangcheng\repository\CartItemRepository.class
 com\shangcheng\service\UserDetailsServiceImpl.class
 com\shangcheng\entity\User.class
