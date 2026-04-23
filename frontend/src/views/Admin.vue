@@ -76,6 +76,7 @@
                   <el-input-number
                     v-model="scope.row.points"
                     :min="0"
+                    :max="999999999"
                     size="small"
                     controls-position="right"
                     @change="updatePoints(scope.row)"

@@ -55,9 +55,15 @@
         </el-table>
         
         <div class="cart-footer">
-          <div class="cart-summary">
-            <span class="total-label">总计:</span>
-            <span class="total-price">{{ totalPrice }} 积分</span>
+          <div class="cart-left-section">
+            <div class="cart-summary">
+              <span class="total-label">总计:</span>
+              <span class="total-price">{{ totalPrice }} 积分</span>
+            </div>
+            <div v-if="hasInsufficientPoints" class="insufficient-points-warning">
+              <el-icon><Warning /></el-icon>
+              积分不足，当前积分: {{ userStore.userInfo?.points }}，支付时可能失败
+            </div>
           </div>
           <div class="cart-actions">
             <el-button @click="clearCart">清空购物车</el-button>
@@ -75,6 +81,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Warning } from '@element-plus/icons-vue'
 import NavBar from '@/components/NavBar.vue'
 import api from '@/utils/api'
 import { useUserStore } from '@/stores/user'
@@ -87,17 +94,27 @@ const checkingOut = ref(false)
 
 const totalPrice = computed(() => {
   return cartItems.value.reduce((sum, item) => {
-    return sum + (item.product?.price || 0) * item.quantity
+    const qty = Number(item.quantity)
+    const validQty = isNaN(qty) || qty < 1 ? 1 : qty
+    return sum + (item.product?.price || 0) * validQty
   }, 0)
+})
+
+const hasInsufficientPoints = computed(() => {
+  if (!userStore.userInfo) return false
+  return userStore.userInfo.points < totalPrice.value
 })
 
 const canCheckout = computed(() => {
   if (cartItems.value.length === 0) return false
   const hasOutOfStock = cartItems.value.some(item => !item.product || item.product.stock <= 0)
   if (hasOutOfStock) return false
-  const hasInsufficientStock = cartItems.value.some(item => item.quantity > item.product?.stock)
+  const hasInsufficientStock = cartItems.value.some(item => {
+    const qty = Number(item.quantity)
+    return isNaN(qty) || qty < 1 || qty > item.product?.stock
+  })
   if (hasInsufficientStock) return false
-  return userStore.userInfo?.points >= totalPrice.value
+  return true
 })
 
 const fetchCart = async () => {
@@ -157,7 +174,7 @@ const checkout = async () => {
   if (!canCheckout.value) return
   
   try {
-    await ElMessageBox.confirm(`确定要结算吗？总计 ${totalPrice.value} 积分`, '确认结算', {
+    await ElMessageBox.confirm(`确定要结算吗？总计 ${totalPrice.value} 积分，将创建待支付订单`, '确认结算', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'info'
@@ -174,8 +191,8 @@ const checkout = async () => {
     
     await api.delete('/api/cart')
     
-    ElMessage.success('结算成功！')
-    await userStore.refreshUserInfo()
+    ElMessage.success('订单已创建，请前往订单页面支付')
+    cartItems.value = []
     router.push('/orders')
   } catch (error) {
     if (error !== 'cancel') {
@@ -271,6 +288,12 @@ onMounted(() => {
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
+.cart-left-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .cart-summary {
   display: flex;
   align-items: center;
@@ -291,5 +314,16 @@ onMounted(() => {
 .cart-actions {
   display: flex;
   gap: 15px;
+}
+
+.insufficient-points-warning {
+  padding: 6px 10px;
+  background-color: #fef0f0;
+  border-radius: 4px;
+  color: #f56c6c;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 </style>

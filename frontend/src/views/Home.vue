@@ -137,7 +137,10 @@ const buying = ref(false)
 const addingToCart = ref(false)
 
 const totalPrice = computed(() => {
-  return selectedProduct.value ? selectedProduct.value.price * buyQuantity.value : 0
+  if (!selectedProduct.value) return 0
+  const qty = Number(buyQuantity.value)
+  const validQty = isNaN(qty) || qty < 1 ? 1 : qty
+  return selectedProduct.value.price * validQty
 })
 
 const fetchProducts = async () => {
@@ -190,10 +193,24 @@ const addToCart = async (product) => {
 const confirmBuy = async () => {
   if (!selectedProduct.value) return
   
-  if (buyQuantity.value > selectedProduct.value.stock) {
-    ElMessage.error('购买数量不能超过库存数量')
+  const qty = Number(buyQuantity.value)
+  
+  if (isNaN(qty) || qty < 1) {
+    ElMessage.error('购买数量必须大于0')
     return
   }
+  
+  if (!Number.isInteger(qty)) {
+    ElMessage.error('购买数量必须是整数')
+    return
+  }
+  
+  if (qty > selectedProduct.value.stock) {
+    ElMessage.error(`购买数量不能超过库存数量，当前库存: ${selectedProduct.value.stock}`)
+    return
+  }
+  
+  buyQuantity.value = qty
   
   buying.value = true
   try {
@@ -203,14 +220,13 @@ const confirmBuy = async () => {
     })
     
     ElMessage({
-      message: '购买成功！',
+      message: '订单已创建，请前往订单页面支付',
       type: 'success',
       offset: 60,
-      duration: 1500
+      duration: 2000
     })
     
     buyDialogVisible.value = false
-    await userStore.refreshUserInfo()
     fetchProducts()
   } catch (error) {
     console.error('Failed to buy:', error)
