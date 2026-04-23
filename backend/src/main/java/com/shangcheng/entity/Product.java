@@ -8,6 +8,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "products")
 public class Product {
+    public static final String STATUS_ACTIVE = "ACTIVE";
+    public static final String STATUS_INACTIVE = "INACTIVE";
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,6 +26,9 @@ public class Product {
     private String imagePath;
     
     private Integer stock = 1;
+    
+    @Column(nullable = false)
+    private String status = STATUS_ACTIVE;
     
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

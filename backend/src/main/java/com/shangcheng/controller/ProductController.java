@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +28,12 @@ public class ProductController {
     
     @GetMapping
     public ResponseEntity<List<Product>> getAllProducts() {
+        return ResponseEntity.ok(productService.findAllActive());
+    }
+    
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Product>> getAllProductsAdmin() {
         return ResponseEntity.ok(productService.findAll());
     }
     
@@ -45,7 +52,7 @@ public class ProductController {
         try {
             ProductRequest request = objectMapper.readValue(productJson, ProductRequest.class);
             Product product = productService.createProduct(request, imageFile);
-            return ResponseEntity.ok(product);
+            return ResponseEntity.ok(productToMap(product));
         } catch (IOException e) {
             return ResponseEntity.badRequest().body(Map.of("message", "参数解析失败"));
         } catch (RuntimeException e) {
@@ -62,7 +69,7 @@ public class ProductController {
         try {
             ProductRequest request = objectMapper.readValue(productJson, ProductRequest.class);
             Product product = productService.updateProduct(id, request, imageFile);
-            return ResponseEntity.ok(product);
+            return ResponseEntity.ok(productToMap(product));
         } catch (IOException e) {
             return ResponseEntity.badRequest().body(Map.of("message", "参数解析失败"));
         } catch (RuntimeException e) {
@@ -70,14 +77,27 @@ public class ProductController {
         }
     }
     
-    @DeleteMapping("/{id}")
+    @PostMapping("/{id}/toggle-status")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
+    public ResponseEntity<?> toggleProductStatus(@PathVariable Long id) {
         try {
-            productService.deleteProduct(id);
-            return ResponseEntity.ok(Map.of("message", "删除成功"));
+            Product product = productService.toggleStatus(id);
+            return ResponseEntity.ok(productToMap(product));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
+    }
+    
+    private Map<String, Object> productToMap(Product product) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", product.getId());
+        map.put("name", product.getName());
+        map.put("description", product.getDescription());
+        map.put("price", product.getPrice());
+        map.put("imagePath", product.getImagePath());
+        map.put("stock", product.getStock());
+        map.put("status", product.getStatus());
+        map.put("createdAt", product.getCreatedAt());
+        return map;
     }
 }

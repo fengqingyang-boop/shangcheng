@@ -50,15 +50,67 @@ public class OrderController {
             
             Order order = orderService.createOrder(user, product, request.getQuantity());
             
-            Map<String, Object> result = new HashMap<>();
-            result.put("id", order.getId());
-            result.put("productName", order.getProductName());
-            result.put("productImage", order.getProductImage());
-            result.put("price", order.getPrice());
-            result.put("quantity", order.getQuantity());
-            result.put("createdAt", order.getCreatedAt());
+            return ResponseEntity.ok(orderToMap(order));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/{id}/pay")
+    public ResponseEntity<?> payOrder(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "请先登录"));
+        }
+        
+        try {
+            User user = userService.findByUsername(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException("用户不存在"));
             
-            return ResponseEntity.ok(result);
+            Order order = orderService.payOrder(id, user);
+            
+            return ResponseEntity.ok(orderToMap(order));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelOrder(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "请先登录"));
+        }
+        
+        try {
+            User user = userService.findByUsername(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException("用户不存在"));
+            
+            Order order = orderService.cancelOrder(id, user);
+            
+            return ResponseEntity.ok(orderToMap(order));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/{id}/refund")
+    public ResponseEntity<?> refundOrder(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "请先登录"));
+        }
+        
+        try {
+            User user = userService.findByUsername(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException("用户不存在"));
+            
+            Order order = orderService.refundOrder(id, user);
+            
+            return ResponseEntity.ok(orderToMap(order));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
@@ -75,17 +127,9 @@ public class OrderController {
         
         List<Order> orders = orderService.getUserOrders(user);
         
-        List<Map<String, Object>> result = orders.stream().map(order -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", order.getId());
-            map.put("productId", order.getProduct() != null ? order.getProduct().getId() : null);
-            map.put("productName", order.getProductName());
-            map.put("productImage", order.getProductImage());
-            map.put("price", order.getPrice());
-            map.put("quantity", order.getQuantity());
-            map.put("createdAt", order.getCreatedAt());
-            return map;
-        }).collect(Collectors.toList());
+        List<Map<String, Object>> result = orders.stream()
+                .map(this::orderToMap)
+                .collect(Collectors.toList());
         
         return ResponseEntity.ok(result);
     }
@@ -95,20 +139,30 @@ public class OrderController {
     public ResponseEntity<?> getAllOrders() {
         List<Order> orders = orderService.findAll();
         
-        List<Map<String, Object>> result = orders.stream().map(order -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", order.getId());
-            map.put("userId", order.getUser().getId());
-            map.put("username", order.getUser().getUsername());
-            map.put("productId", order.getProduct() != null ? order.getProduct().getId() : null);
-            map.put("productName", order.getProductName());
-            map.put("productImage", order.getProductImage());
-            map.put("price", order.getPrice());
-            map.put("quantity", order.getQuantity());
-            map.put("createdAt", order.getCreatedAt());
-            return map;
-        }).collect(Collectors.toList());
+        List<Map<String, Object>> result = orders.stream()
+                .map(this::orderToMap)
+                .collect(Collectors.toList());
         
         return ResponseEntity.ok(result);
+    }
+    
+    private Map<String, Object> orderToMap(Order order) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", order.getId());
+        if (order.getUser() != null) {
+            map.put("userId", order.getUser().getId());
+            map.put("username", order.getUser().getUsername());
+        }
+        map.put("productId", order.getProduct() != null ? order.getProduct().getId() : null);
+        map.put("productName", order.getProductName());
+        map.put("productImage", order.getProductImage());
+        map.put("price", order.getPrice());
+        map.put("quantity", order.getQuantity());
+        map.put("status", order.getStatus());
+        map.put("createdAt", order.getCreatedAt());
+        map.put("paidAt", order.getPaidAt());
+        map.put("cancelledAt", order.getCancelledAt());
+        map.put("refundedAt", order.getRefundedAt());
+        return map;
     }
 }

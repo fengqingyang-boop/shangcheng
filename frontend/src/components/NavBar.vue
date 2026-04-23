@@ -13,6 +13,13 @@
       <span>商城首页</span>
     </el-menu-item>
     
+    <el-menu-item v-if="userStore.isLoggedIn" index="/cart">
+      <el-badge :value="cartCount" :hidden="cartCount === 0" class="cart-badge">
+        <el-icon><Goods /></el-icon>
+        <span>购物车</span>
+      </el-badge>
+    </el-menu-item>
+    
     <el-menu-item v-if="userStore.isLoggedIn" index="/orders">
       <el-icon><Document /></el-icon>
       <span>我的订单</span>
@@ -48,16 +55,32 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import api from '@/utils/api'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
+const cartCount = ref(0)
+
 const activeIndex = computed(() => route.path)
+
+const fetchCartCount = async () => {
+  if (!userStore.isLoggedIn) {
+    cartCount.value = 0
+    return
+  }
+  try {
+    const response = await api.get('/api/cart/count')
+    cartCount.value = response.data.count || 0
+  } catch (error) {
+    console.error('Failed to fetch cart count:', error)
+  }
+}
 
 const handleCommand = async (command) => {
   if (command === 'logout') {
@@ -68,12 +91,21 @@ const handleCommand = async (command) => {
         type: 'warning'
       })
       userStore.logout()
+      cartCount.value = 0
       router.push('/login')
     } catch {
       // 用户取消
     }
   }
 }
+
+watch(() => userStore.isLoggedIn, () => {
+  fetchCartCount()
+})
+
+onMounted(() => {
+  fetchCartCount()
+})
 </script>
 
 <style scoped>
@@ -83,6 +115,10 @@ const handleCommand = async (command) => {
   display: flex;
   align-items: center;
   padding: 0 20px;
+}
+
+.cart-badge {
+  height: 100%;
 }
 
 .user-info {

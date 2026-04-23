@@ -32,14 +32,24 @@
                 </span>
                 <span class="stock">库存: {{ product.stock }}</span>
               </div>
-              <el-button 
-                type="primary" 
-                class="buy-btn" 
-                :disabled="product.stock <= 0"
-                @click="openBuyDialog(product)"
-              >
-                {{ product.stock > 0 ? '立即购买' : '已售罄' }}
-              </el-button>
+              <div class="action-buttons">
+                <el-button 
+                  type="primary" 
+                  class="buy-btn" 
+                  :disabled="product.stock <= 0"
+                  @click="openBuyDialog(product)"
+                >
+                  {{ product.stock > 0 ? '立即购买' : '已售罄' }}
+                </el-button>
+                <el-button 
+                  class="cart-btn" 
+                  :disabled="product.stock <= 0"
+                  @click="addToCart(product)"
+                >
+                  <el-icon><Plus /></el-icon>
+                  购物车
+                </el-button>
+              </div>
             </div>
           </el-card>
         </el-col>
@@ -84,11 +94,21 @@
           <span>总积分:</span>
           <span class="total-price">{{ totalPrice }} 积分</span>
         </div>
+        
+        <div v-if="userStore.userInfo?.points < totalPrice" class="insufficient-points">
+          <el-icon><Warning /></el-icon>
+          积分不足，当前积分: {{ userStore.userInfo?.points }}
+        </div>
       </div>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="buyDialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="buying" @click="confirmBuy">
+          <el-button 
+            type="primary" 
+            :loading="buying" 
+            :disabled="userStore.userInfo?.points < totalPrice"
+            @click="confirmBuy"
+          >
             确认购买
           </el-button>
         </span>
@@ -98,7 +118,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, getCurrentInstance } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import NavBar from '@/components/NavBar.vue'
@@ -107,12 +127,14 @@ import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
 const userStore = useUserStore()
+const instance = getCurrentInstance()
 
 const products = ref([])
 const buyDialogVisible = ref(false)
 const selectedProduct = ref(null)
 const buyQuantity = ref(1)
 const buying = ref(false)
+const addingToCart = ref(false)
 
 const totalPrice = computed(() => {
   return selectedProduct.value ? selectedProduct.value.price * buyQuantity.value : 0
@@ -138,8 +160,40 @@ const openBuyDialog = (product) => {
   buyDialogVisible.value = true
 }
 
+const addToCart = async (product) => {
+  if (!userStore.isLoggedIn) {
+    router.push('/login')
+    return
+  }
+  
+  try {
+    await api.post('/api/cart', {
+      productId: product.id,
+      quantity: 1
+    })
+    
+    ElMessage({
+      message: '已加入购物车',
+      type: 'success',
+      offset: 60,
+      duration: 1500
+    })
+    
+    if (instance?.proxy?.$parent?.$parent?.fetchCartCount) {
+      instance.proxy.$parent.$parent.fetchCartCount()
+    }
+  } catch (error) {
+    console.error('Failed to add to cart:', error)
+  }
+}
+
 const confirmBuy = async () => {
   if (!selectedProduct.value) return
+  
+  if (buyQuantity.value > selectedProduct.value.stock) {
+    ElMessage.error('购买数量不能超过库存数量')
+    return
+  }
   
   buying.value = true
   try {
@@ -281,10 +335,19 @@ onMounted(() => {
   color: #909399;
 }
 
-.buy-btn {
-  width: 100%;
+.action-buttons {
+  display: flex;
+  gap: 10px;
   margin-top: auto;
   flex-shrink: 0;
+}
+
+.buy-btn {
+  flex: 1;
+}
+
+.cart-btn {
+  flex: 1;
 }
 
 .buy-dialog-content {
@@ -366,6 +429,17 @@ onMounted(() => {
   font-size: 20px;
   font-weight: bold;
   color: #f56c6c;
+}
+
+.insufficient-points {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #fef0f0;
+  border-radius: 4px;
+  color: #f56c6c;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .dialog-footer {
